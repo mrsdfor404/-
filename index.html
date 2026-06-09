@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام إدارة الطلبات - سحابة خاصة</title>
+    <title>نظام إدارة الطلبات - نظام مالي ذكي</title>
     <style>
         * {
             margin: 0;
@@ -23,7 +23,6 @@
             margin: 0 auto;
         }
 
-        /* بطاقة التحكم */
         .dashboard {
             background: white;
             border-radius: 20px;
@@ -45,7 +44,16 @@
             border-bottom: 2px solid #f0f0f0;
         }
 
-        /* نموذج الإضافة */
+        .warning-banner {
+            background: #fff3cd;
+            border-right: 4px solid #ffc107;
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            color: #856404;
+            font-size: 14px;
+        }
+
         .form-section {
             background: #f8f9fa;
             padding: 25px;
@@ -87,6 +95,10 @@
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
+        input:invalid {
+            border-color: #dc3545;
+        }
+
         button {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -99,11 +111,15 @@
             transition: transform 0.2s;
         }
 
-        button:hover {
+        button:hover:not(:disabled) {
             transform: translateY(-2px);
         }
 
-        /* الإحصائيات */
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
         .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -117,6 +133,12 @@
             padding: 20px;
             border-radius: 15px;
             text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card.warning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
         }
 
         .stat-number {
@@ -130,7 +152,12 @@
             opacity: 0.9;
         }
 
-        /* جدول الطلبات */
+        .stat-note {
+            font-size: 11px;
+            margin-top: 8px;
+            opacity: 0.8;
+        }
+
         .orders-table-wrapper {
             overflow-x: auto;
         }
@@ -162,7 +189,15 @@
             background: #f8f9fa;
         }
 
-        /* شارة الحالة */
+        tr.cancelled-row {
+            background: #fff5f5;
+            opacity: 0.7;
+        }
+
+        tr.negative-row {
+            background: #fff3cd;
+        }
+
         .status-badge {
             display: inline-block;
             padding: 5px 12px;
@@ -176,7 +211,21 @@
         .status-delivered { background: #28a745; color: white; }
         .status-cancelled { background: #dc3545; color: white; }
 
-        /* أزرار الإجراءات */
+        .price-negative {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .price-positive {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .price-excluded {
+            text-decoration: line-through;
+            color: #999;
+        }
+
         .action-btn {
             padding: 5px 10px;
             margin: 0 3px;
@@ -202,7 +251,6 @@
             color: white;
         }
 
-        /* نموذج التعديل */
         .edit-form {
             display: inline-flex;
             gap: 5px;
@@ -214,12 +262,12 @@
             font-size: 12px;
         }
 
-        /* أزرار التحكم */
         .control-buttons {
             display: flex;
             gap: 10px;
             justify-content: center;
             margin-top: 20px;
+            flex-wrap: wrap;
         }
 
         .btn-secondary {
@@ -230,12 +278,23 @@
             background: #dc3545;
         }
 
-        /* رسائل التنبيه */
         .alert {
             padding: 15px;
             border-radius: 10px;
             margin-bottom: 20px;
             display: none;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
 
         .alert-success {
@@ -250,7 +309,12 @@
             border: 1px solid #f5c6cb;
         }
 
-        /* بحث وتصفية */
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+
         .search-box {
             margin-bottom: 20px;
         }
@@ -260,6 +324,25 @@
             padding: 12px;
             border: 2px solid #e0e0e0;
             border-radius: 10px;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            background: #e9ecef;
+            color: #495057;
+            font-size: 13px;
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
         }
 
         @media (max-width: 768px) {
@@ -272,15 +355,25 @@
                 padding: 8px;
             }
         }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+            border-bottom: 1px dotted;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="dashboard">
-            <h1>📋 نظام إدارة الطلبات</h1>
-            <div class="subtitle">تسجيل وتتبع الطلبات - بياناتك محفوظة محلياً</div>
+            <h1>📋 نظام إدارة الطلبات المتقدم</h1>
+            <div class="subtitle">حساب الإيرادات الذكي - يستبعد المبالغ السالبة والطلبات الملغية</div>
 
-            <!-- رسائل التنبيه -->
+            <div class="warning-banner">
+                ⚠️ <strong>تنبيه مالي:</strong> المبالغ السالبة والطلبات الملغية لا تدخل في حساب إجمالي الإيرادات
+            </div>
+
             <div id="alert" class="alert"></div>
 
             <!-- نموذج إضافة طلب -->
@@ -301,7 +394,8 @@
                     </div>
                     <div class="form-group">
                         <label>السعر الإجمالي *</label>
-                        <input type="number" id="totalPrice" step="0.01" placeholder="0.00">
+                        <input type="number" id="totalPrice" step="0.01" placeholder="0.00" oninput="validatePrice(this)">
+                        <small style="color: #666; margin-top: 5px;">⚠️ المبالغ السالبة لن تحتسب في الإيرادات</small>
                     </div>
                     <div class="form-group">
                         <label>الحالة</label>
@@ -311,17 +405,18 @@
                             <option value="تم التسليم">🟢 تم التسليم</option>
                             <option value="ملغي">🔴 ملغي</option>
                         </select>
+                        <small style="color: #666; margin-top: 5px;">⚠️ الطلبات الملغية لا تحتسب في الإيرادات</small>
                     </div>
                     <div class="form-group">
                         <label>ملاحظات</label>
                         <textarea id="notes" rows="1" placeholder="ملاحظات إضافية"></textarea>
                     </div>
                 </div>
-                <button onclick="addOrder()">💾 حفظ الطلب</button>
+                <button onclick="addOrder()" id="addBtn">💾 حفظ الطلب</button>
             </div>
 
             <!-- الإحصائيات -->
-            <div class="stats" id="stats">
+            <div class="stats">
                 <div class="stat-card">
                     <div class="stat-number" id="totalOrders">0</div>
                     <div class="stat-label">إجمالي الطلبات</div>
@@ -335,14 +430,33 @@
                     <div class="stat-label">تم التسليم</div>
                 </div>
                 <div class="stat-card">
+                    <div class="stat-number" id="cancelledOrders">0</div>
+                    <div class="stat-label">ملغية</div>
+                </div>
+                <div class="stat-card">
                     <div class="stat-number" id="totalRevenue">0</div>
-                    <div class="stat-label">إجمالي الإيرادات</div>
+                    <div class="stat-label">💰 إجمالي الإيرادات الفعلية</div>
+                    <div class="stat-note">(لا تشمل السالب والملغي)</div>
+                </div>
+                <div class="stat-card warning">
+                    <div class="stat-number" id="excludedAmount">0</div>
+                    <div class="stat-label">🚫 المبالغ المستبعدة</div>
+                    <div class="stat-note">(سالبة + ملغية)</div>
                 </div>
             </div>
 
-            <!-- بحث -->
+            <!-- بحث وتصفية -->
             <div class="search-box">
                 <input type="text" id="searchInput" placeholder="🔍 بحث عن طلب (باسم العميل أو المنتج)" onkeyup="filterOrders()">
+            </div>
+            
+            <div class="filter-buttons">
+                <button class="filter-btn active" onclick="setFilter('all')">الكل</button>
+                <button class="filter-btn" onclick="setFilter('جديد')">جديد</button>
+                <button class="filter-btn" onclick="setFilter('قيد التنفيذ')">قيد التنفيذ</button>
+                <button class="filter-btn" onclick="setFilter('تم التسليم')">تم التسليم</button>
+                <button class="filter-btn" onclick="setFilter('ملغي')">ملغي</button>
+                <button class="filter-btn" onclick="setFilter('negative')">⚠️ مبالغ سالبة</button>
             </div>
 
             <!-- جدول الطلبات -->
@@ -355,6 +469,7 @@
                             <th>المنتج</th>
                             <th>الكمية</th>
                             <th>السعر</th>
+                            <th>تدخل في الإيرادات؟</th>
                             <th>الحالة</th>
                             <th>التاريخ</th>
                             <th>ملاحظات</th>
@@ -362,12 +477,11 @@
                         </tr>
                     </thead>
                     <tbody id="ordersList">
-                        <tr><td colspan="9" style="text-align: center;">لا توجد طلبات</td></tr>
+                        <tr><td colspan="10" style="text-align: center;">لا توجد طلبات</td></tr>
                     </tbody>
                 </table>
             </div>
 
-            <!-- أزرار التحكم -->
             <div class="control-buttons">
                 <button onclick="exportToCSV()" class="btn-secondary">📥 تصدير إلى Excel/CSV</button>
                 <button onclick="deleteAllOrders()" class="btn-danger">🗑️ حذف جميع الطلبات</button>
@@ -376,37 +490,45 @@
     </div>
 
     <script>
-        // تهيئة البيانات
         let orders = [];
         let editingId = null;
+        let currentFilter = 'all';
 
-        // تحميل البيانات من LocalStorage
         function loadOrders() {
-            const stored = localStorage.getItem('orders');
+            const stored = localStorage.getItem('orders_advanced');
             if (stored) {
                 orders = JSON.parse(stored);
             } else {
-                // بيانات تجريبية
                 orders = [
                     {
                         id: 1,
                         customerName: 'أحمد محمد',
-                        productName: 'منتج 1',
-                        quantity: 2,
-                        totalPrice: 100,
+                        productName: 'لابتوب',
+                        quantity: 1,
+                        totalPrice: 2500,
                         status: 'جديد',
                         date: new Date().toISOString(),
-                        notes: 'يرجى الاتصال قبل التسليم'
+                        notes: ''
                     },
                     {
                         id: 2,
                         customerName: 'سارة علي',
-                        productName: 'منتج 2',
-                        quantity: 1,
-                        totalPrice: 50,
-                        status: 'قيد التنفيذ',
+                        productName: 'هاتف',
+                        quantity: 2,
+                        totalPrice: -500,
+                        status: 'جديد',
                         date: new Date().toISOString(),
-                        notes: ''
+                        notes: '⚠️ مبلغ سالب - لن يحتسب'
+                    },
+                    {
+                        id: 3,
+                        customerName: 'محمد خالد',
+                        productName: 'سماعات',
+                        quantity: 1,
+                        totalPrice: 150,
+                        status: 'ملغي',
+                        date: new Date().toISOString(),
+                        notes: 'طلب ملغي'
                     }
                 ];
                 saveOrders();
@@ -414,30 +536,51 @@
             renderOrders();
         }
 
-        // حفظ البيانات في LocalStorage
         function saveOrders() {
-            localStorage.setItem('orders', JSON.stringify(orders));
+            localStorage.setItem('orders_advanced', JSON.stringify(orders));
             updateStats();
         }
 
-        // إضافة طلب جديد
+        function validatePrice(input) {
+            let value = parseFloat(input.value);
+            if (value < 0) {
+                input.style.borderColor = "#ffc107";
+                document.getElementById('addBtn').disabled = false;
+            } else {
+                input.style.borderColor = "#28a745";
+                document.getElementById('addBtn').disabled = false;
+            }
+        }
+
         function addOrder() {
             const customerName = document.getElementById('customerName').value.trim();
             const productName = document.getElementById('productName').value.trim();
             const quantity = parseInt(document.getElementById('quantity').value);
-            const totalPrice = parseFloat(document.getElementById('totalPrice').value);
+            let totalPrice = parseFloat(document.getElementById('totalPrice').value);
             const status = document.getElementById('status').value;
             const notes = document.getElementById('notes').value.trim();
 
-            // التحقق من صحة المدخلات
-            if (!customerName || !productName || !quantity || !totalPrice) {
+            if (!customerName || !productName || !quantity) {
                 showAlert('الرجاء ملء جميع الحقول المطلوبة', 'error');
                 return;
             }
 
-            if (quantity <= 0 || totalPrice <= 0) {
-                showAlert('الكمية والسعر يجب أن يكونا أكبر من صفر', 'error');
+            if (isNaN(totalPrice)) {
+                showAlert('الرجاء إدخال سعر صحيح', 'error');
                 return;
+            }
+
+            if (quantity <= 0) {
+                showAlert('الكمية يجب أن تكون أكبر من صفر', 'error');
+                return;
+            }
+
+            let warningMessage = '';
+            if (totalPrice < 0) {
+                warningMessage = ' ⚠️ تنبيه: هذا المبلغ سالب ولن يدخل في الإيرادات';
+            }
+            if (status === 'ملغي') {
+                warningMessage += ' ⚠️ هذا الطلب ملغي ولن يدخل في الإيرادات';
             }
 
             const newOrder = {
@@ -448,14 +591,13 @@
                 totalPrice: totalPrice,
                 status: status,
                 date: new Date().toISOString(),
-                notes: notes
+                notes: notes + warningMessage
             };
 
-            orders.unshift(newOrder); // إضافة في البداية
+            orders.unshift(newOrder);
             saveOrders();
             renderOrders();
 
-            // مسح النموذج
             document.getElementById('customerName').value = '';
             document.getElementById('productName').value = '';
             document.getElementById('quantity').value = '1';
@@ -463,10 +605,9 @@
             document.getElementById('notes').value = '';
             document.getElementById('status').value = 'جديد';
 
-            showAlert('تم إضافة الطلب بنجاح', 'success');
+            showAlert('تم إضافة الطلب بنجاح' + warningMessage, warningMessage ? 'warning' : 'success');
         }
 
-        // حذف طلب
         function deleteOrder(id) {
             if (confirm('هل أنت متأكد من حذف هذا الطلب؟')) {
                 orders = orders.filter(order => order.id !== id);
@@ -476,7 +617,6 @@
             }
         }
 
-        // حذف جميع الطلبات
         function deleteAllOrders() {
             if (confirm('⚠️ تحذير: هذا سيحذف جميع الطلبات نهائياً! هل أنت متأكد؟')) {
                 orders = [];
@@ -486,13 +626,11 @@
             }
         }
 
-        // بدء التعديل
         function startEdit(id) {
             editingId = id;
-            renderOrders(); // إعادة عرض الجدول مع حقول التعديل
+            renderOrders();
         }
 
-        // حفظ التعديل
         function saveEdit(id) {
             const newCustomerName = document.getElementById(`edit_customer_${id}`).value;
             const newProductName = document.getElementById(`edit_product_${id}`).value;
@@ -501,8 +639,21 @@
             const newStatus = document.getElementById(`edit_status_${id}`).value;
             const newNotes = document.getElementById(`edit_notes_${id}`).value;
 
+            if (newQuantity <= 0) {
+                showAlert('الكمية يجب أن تكون أكبر من صفر', 'error');
+                return;
+            }
+
             const orderIndex = orders.findIndex(o => o.id === id);
             if (orderIndex !== -1) {
+                let warningMessage = '';
+                if (newTotalPrice < 0) {
+                    warningMessage = ' ⚠️ هذا المبلغ سالب ولن يدخل في الإيرادات';
+                }
+                if (newStatus === 'ملغي') {
+                    warningMessage += ' ⚠️ هذا الطلب ملغي ولن يدخل في الإيرادات';
+                }
+                
                 orders[orderIndex] = {
                     ...orders[orderIndex],
                     customerName: newCustomerName,
@@ -510,7 +661,7 @@
                     quantity: newQuantity,
                     totalPrice: newTotalPrice,
                     status: newStatus,
-                    notes: newNotes
+                    notes: newNotes + warningMessage
                 };
                 saveOrders();
             }
@@ -520,62 +671,119 @@
             showAlert('تم تحديث الطلب بنجاح', 'success');
         }
 
-        // تغيير الحالة بسرعة
         function quickStatusChange(id, newStatus) {
             const orderIndex = orders.findIndex(o => o.id === id);
             if (orderIndex !== -1) {
+                const oldStatus = orders[orderIndex].status;
                 orders[orderIndex].status = newStatus;
+                
+                let warningMessage = '';
+                if (orders[orderIndex].totalPrice < 0) {
+                    warningMessage = ' ⚠️ هذا المبلغ سالب ولن يدخل في الإيرادات';
+                }
+                if (newStatus === 'ملغي') {
+                    warningMessage += ' ⚠️ هذا الطلب ملغي ولن يدخل في الإيرادات';
+                }
+                
+                if (warningMessage && !orders[orderIndex].notes.includes('⚠️')) {
+                    orders[orderIndex].notes += warningMessage;
+                }
+                
                 saveOrders();
                 renderOrders();
-                showAlert(`تم تغيير الحالة إلى ${newStatus}`, 'success');
+                showAlert(`تم تغيير الحالة من ${oldStatus} إلى ${newStatus}`, 'success');
             }
         }
 
-        // تحديث الإحصائيات
         function updateStats() {
             const total = orders.length;
             const newOrders = orders.filter(o => o.status === 'جديد').length;
             const deliveredOrders = orders.filter(o => o.status === 'تم التسليم').length;
-            const totalRevenue = orders.reduce((sum, o) => sum + o.totalPrice, 0);
+            const cancelledOrders = orders.filter(o => o.status === 'ملغي').length;
+            
+            // حساب الإيرادات الفعلية (فقط الطلبات غير الملغية والمبالغ الموجبة)
+            const actualRevenue = orders
+                .filter(o => o.status !== 'ملغي' && o.totalPrice > 0)
+                .reduce((sum, o) => sum + o.totalPrice, 0);
+            
+            // حساب المبالغ المستبعدة (السالبة + الملغية)
+            const excludedAmount = orders
+                .filter(o => o.status === 'ملغي' || o.totalPrice < 0)
+                .reduce((sum, o) => sum + Math.abs(o.totalPrice), 0);
 
             document.getElementById('totalOrders').textContent = total;
             document.getElementById('newOrders').textContent = newOrders;
             document.getElementById('deliveredOrders').textContent = deliveredOrders;
-            document.getElementById('totalRevenue').textContent = totalRevenue.toFixed(2);
+            document.getElementById('cancelledOrders').textContent = cancelledOrders;
+            document.getElementById('totalRevenue').textContent = actualRevenue.toFixed(2);
+            document.getElementById('excludedAmount').textContent = excludedAmount.toFixed(2);
         }
 
-        // تصفية الطلبات
+        function setFilter(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.textContent.includes(filter === 'all' ? 'الكل' : 
+                    filter === 'negative' ? 'مبالغ سالبة' : filter)) {
+                    btn.classList.add('active');
+                }
+            });
+            filterOrders();
+        }
+
         function filterOrders() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const filtered = orders.filter(order => 
-                order.customerName.toLowerCase().includes(searchTerm) ||
-                order.productName.toLowerCase().includes(searchTerm) ||
-                order.notes.toLowerCase().includes(searchTerm)
-            );
+            let filtered = orders;
+            
+            if (currentFilter !== 'all') {
+                if (currentFilter === 'negative') {
+                    filtered = orders.filter(order => order.totalPrice < 0);
+                } else {
+                    filtered = orders.filter(order => order.status === currentFilter);
+                }
+            }
+            
+            if (searchTerm) {
+                filtered = filtered.filter(order => 
+                    order.customerName.toLowerCase().includes(searchTerm) ||
+                    order.productName.toLowerCase().includes(searchTerm) ||
+                    order.notes.toLowerCase().includes(searchTerm)
+                );
+            }
+            
             renderOrders(filtered);
         }
 
-        // عرض الطلبات في الجدول
+        function isOrderIncludedInRevenue(order) {
+            return order.status !== 'ملغي' && order.totalPrice > 0;
+        }
+
         function renderOrders(ordersToRender = null) {
             const ordersList = ordersToRender || orders;
             const tbody = document.getElementById('ordersList');
             
             if (ordersList.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">📭 لا توجد طلبات</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align: center;">📭 لا توجد طلبات</td></tr>';
                 updateStats();
                 return;
             }
 
             tbody.innerHTML = ordersList.map(order => {
+                const isIncluded = isOrderIncludedInRevenue(order);
+                const isNegative = order.totalPrice < 0;
+                const isCancelled = order.status === 'ملغي';
+                const rowClass = isCancelled ? 'cancelled-row' : (isNegative ? 'negative-row' : '');
+                const priceClass = isNegative ? 'price-negative' : (isIncluded ? 'price-positive' : 'price-excluded');
+                
                 if (editingId === order.id) {
-                    // عرض نموذج التعديل
                     return `
-                        <tr>
+                        <tr class="${rowClass}">
                             <td>${order.id}</td>
                             <td><input type="text" id="edit_customer_${order.id}" value="${escapeHtml(order.customerName)}" class="edit-input"></td>
                             <td><input type="text" id="edit_product_${order.id}" value="${escapeHtml(order.productName)}" class="edit-input"></td>
                             <td><input type="number" id="edit_quantity_${order.id}" value="${order.quantity}" class="edit-input" style="width: 70px;"></td>
-                            <td><input type="number" id="edit_price_${order.id}" value="${order.totalPrice}" class="edit-input" style="width: 100px;"></td>
+                            <td><input type="number" id="edit_price_${order.id}" value="${order.totalPrice}" class="edit-input" style="width: 100px;" step="0.01"></td>
+                            <td>-</td>
                             <td>
                                 <select id="edit_status_${order.id}" class="edit-input">
                                     <option ${order.status === 'جديد' ? 'selected' : ''}>جديد</option>
@@ -593,26 +801,30 @@
                         </tr>
                     `;
                 } else {
-                    // عرض عادي
                     const statusClass = order.status === 'جديد' ? 'status-new' :
                                        order.status === 'قيد التنفيذ' ? 'status-progress' :
                                        order.status === 'تم التسليم' ? 'status-delivered' : 'status-cancelled';
                     
+                    const inclusionIcon = isIncluded ? '✅ نعم' : '❌ لا';
+                    const inclusionTitle = isIncluded ? 'يدخل في الإيرادات' : 
+                                          (order.status === 'ملغي' ? 'طلب ملغي - لا يدخل' : 'مبلغ سالب - لا يدخل');
+                    
                     return `
-                        <tr>
+                        <tr class="${rowClass}">
                             <td>${order.id}</td>
                             <td>${escapeHtml(order.customerName)}</td>
                             <td>${escapeHtml(order.productName)}</td>
                             <td>${order.quantity}</td>
-                            <td>${order.totalPrice} $</td>
+                            <td class="${priceClass}">${order.totalPrice < 0 ? '' : ''}${order.totalPrice} $${order.totalPrice < 0 ? ' (سالب)' : ''}</td>
+                            <td><span class="tooltip" title="${inclusionTitle}">${inclusionIcon}</span></td>
                             <td>
                                 <span class="status-badge ${statusClass}">${order.status}</span>
                                 <br>
                                 <select onchange="quickStatusChange(${order.id}, this.value)" style="margin-top: 5px; font-size: 11px; padding: 3px;">
-                                    <option>جديد</option>
-                                    <option>قيد التنفيذ</option>
-                                    <option>تم التسليم</option>
-                                    <option>ملغي</option>
+                                    <option ${order.status === 'جديد' ? 'selected' : ''}>جديد</option>
+                                    <option ${order.status === 'قيد التنفيذ' ? 'selected' : ''}>قيد التنفيذ</option>
+                                    <option ${order.status === 'تم التسليم' ? 'selected' : ''}>تم التسليم</option>
+                                    <option ${order.status === 'ملغي' ? 'selected' : ''}>ملغي</option>
                                 </select>
                             </td>
                             <td>${new Date(order.date).toLocaleDateString('ar-EG')}<br><small>${new Date(order.date).toLocaleTimeString('ar-EG')}</small></td>
@@ -629,26 +841,25 @@
             updateStats();
         }
 
-        // إلغاء التعديل
         function cancelEdit() {
             editingId = null;
             renderOrders();
         }
 
-        // تصدير إلى CSV
         function exportToCSV() {
             if (orders.length === 0) {
                 showAlert('لا توجد بيانات للتصدير', 'error');
                 return;
             }
 
-            const headers = ['ID', 'العميل', 'المنتج', 'الكمية', 'السعر', 'الحالة', 'التاريخ', 'الملاحظات'];
+            const headers = ['ID', 'العميل', 'المنتج', 'الكمية', 'السعر', 'يدخل في الإيرادات؟', 'الحالة', 'التاريخ', 'الملاحظات'];
             const rows = orders.map(order => [
                 order.id,
                 order.customerName,
                 order.productName,
                 order.quantity,
                 order.totalPrice,
+                isOrderIncludedInRevenue(order) ? 'نعم' : 'لا',
                 order.status,
                 new Date(order.date).toLocaleString('ar-EG'),
                 order.notes
@@ -668,7 +879,6 @@
             showAlert('تم تصدير البيانات بنجاح', 'success');
         }
 
-        // عرض رسالة
         function showAlert(message, type) {
             const alertDiv = document.getElementById('alert');
             alertDiv.textContent = message;
@@ -677,17 +887,16 @@
             
             setTimeout(() => {
                 alertDiv.style.display = 'none';
-            }, 3000);
+            }, 4000);
         }
 
-        // منع XSS
         function escapeHtml(text) {
+            if (!text) return '';
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
 
-        // تحميل الصفحة
         loadOrders();
     </script>
 </body>
